@@ -2457,7 +2457,10 @@ fn a_bare_name_of_a_mirrored_cap_split_from_its_original_asks_for_a_reselection(
     let mut control = Session::new((*s.doc).clone());
     run(&mut control, "solid.offset_face", json!({"faces":[pick],"distance":0.25,"body":"Plate"}));
     let control = plate(&mut control);
-    assert!(rel(control["volume_mm3"].as_f64().unwrap(), plain["volume_mm3"].as_f64().unwrap()) > 1e-6, "the control actually offsets: {control} {plain}");
+    assert!(
+        rel(control["volume_mm3"].as_f64().unwrap(), plain["volume_mm3"].as_f64().unwrap()) > 1e-6,
+        "the control actually offsets: {control} {plain}"
+    );
     // The bare name the unpatched release saved for the mirrored cap, with the pick on it: the
     // copy's cap and the original's are now two pieces of the face they both ended on, and the
     // pieces of one stem can be pieces of several faces, so the name asks for a reselection
