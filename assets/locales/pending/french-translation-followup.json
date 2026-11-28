@@ -231,8 +231,6 @@
     "ui.plugin_dialog_help": "En savoir plus sur ce champ",
     "ui.plugin_importer_remember": "Mémoriser ces options",
     "ui.plugin_importer_restore_defaults": "Rétablir les valeurs par défaut",
-    "ui.project_link_tools": "Affichage et sélection des projections",
-    "ui.project_link_tools_note": "Pour cette session uniquement. Regroupe les actions de projection, affiche les lignes de projection et permet de projeter la géométrie d’une autre esquisse lors de l’ajout de contraintes ou de cotes. Désactivé, les menus et la sélection existants sont conservés.",
     "ui.pulley.belt_width": "Largeur de courroie",
     "ui.pulley.bore": "Alésage d’axe",
     "ui.pulley.bore_diameter": "Diamètre de l’alésage",

@@ -8076,8 +8076,6 @@
   "ui.profiles": "プロファイル",
   "ui.project": "投影",
   "ui.project_face_edges_sketch": "新規スケッチに面のエッジを自動投影",
-  "ui.project_link_tools": "投影の表示と選択",
-  "ui.project_link_tools_note": "このセッションのみ。投影の操作をまとめ、投影の行を表示し、拘束や寸法の追加時に別のスケッチの形状を投影します。オフの場合は従来のメニューと選択を維持します。",
   "ui.project_references_construction": "参照をコンストラクションジオメトリとして投影",
   "ui.project_references_construction_note": "投影、交差、3D ジオメトリを含める、および面上の新規スケッチの面のエッジは、コンストラクションジオメトリになります。描画の参照用で、プロファイルには含まれません。モデルとのリンクは保たれます。",
   "ui.projection_of_new_drawings": "新規図面の投影法",

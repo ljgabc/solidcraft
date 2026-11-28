@@ -8076,8 +8076,6 @@
   "ui.profiles": "Các biên dạng",
   "ui.project": "Chiếu hình học",
   "ui.project_face_edges_sketch": "Chiếu các cạnh bề mặt vào phác thảo mới",
-  "ui.project_link_tools": "Hiển thị và chọn hình chiếu",
-  "ui.project_link_tools_note": "Chỉ trong phiên này. Nhóm thao tác liên kết, hiển thị các hàng hình chiếu và chiếu hình học từ bản phác thảo khác khi thêm ràng buộc hoặc kích thước. Tắt để giữ menu và cách chọn hiện có.",
   "ui.project_references_construction": "Chiếu tham chiếu thành đường dựng hình",
   "ui.project_references_construction_note": "Chiếu, Giao, Đưa vào hình học 3D và các cạnh bề mặt của phác thảo mới trên một bề mặt tạo ra đường dựng hình: tham chiếu để vẽ theo, không thuộc biên dạng. Chúng vẫn liên kết với mô hình.",
   "ui.projection_of_new_drawings": "Phép chiếu của bản vẽ mới",

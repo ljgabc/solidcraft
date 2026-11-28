@@ -315,13 +315,10 @@ they bound no profile but stay linked and keep following their source.
 
 **Constraining to the model.** Projected geometry is fixed where its source puts it, so
 constrain and dimension the sketch's own geometry to it. The constraint tools and Dimension
-take a model edge or vertex directly. Turn on **Projection display and picking** in
-the Project tool's options panel to also pick another sketch's curve directly: the click projects it into
-the sketch first (the status line says so) and uses the projection. This option also gives
-projected points their projection or lost colors, groups Break Link with the projection's
-actions, and lists projections under their sketch in the browser and history.
-It is off by default and lasts for the current app session only. It is not a Preferences setting.
-With it off, the previous menu, picking and row layout remain. Opening a saved design does not enable it.
+take a model edge or vertex directly, and another sketch's curve too: the click projects it
+into the sketch first (the status line says so) and uses the projection. Projected points
+carry their projection or lost colours, Break Link sits with the projection's actions, and
+projections are listed under their sketch in the browser and history.
 A consistent constraint only between projections is kept and reported as redundant, as on
 other fixed geometry. Commands can request `if_redundant: "refuse"` to refuse it instead.
 A conflicting constraint is always refused. A dimension on projected geometry alone can
@@ -345,8 +342,8 @@ component or a part inside that copy. A sketch of a part placed more than once t
 an explicit `path`. The input defaults to false on `sketch.project`, `sketch.intersect` and
 `sketch.include_3d`: ambiguous sketches and other placements of the receiving component
 keep main's ordinary links. Own-sketch and later-timeline references remain refused.
-**Projection display and picking** sends the strict input and the displayed copy's path;
-command callers can choose it explicitly. Whatever the sketch is constrained to and the features
+Picking in the app sends the strict input and the displayed copy's path; command
+callers can choose it explicitly. Whatever the sketch is constrained to and the features
 built on it are rebuilt with it.
 
 A curve or point of another component's sketch is the exception when that component is placed
@@ -357,7 +354,7 @@ once is read from the placement its `path` names, as body geometry is.
 Body geometry from a part placed only once keeps following uncaptured moves while its
 projection is refreshed, as before. Projections from repeated placements follow captured
 positions: a move kept pending (`occurrence.move` with `capture: false`) is not followed until
-it is captured. With **Projection display and picking** enabled, each projection is listed
+it is captured. Each projection is listed
 under its sketch in the browser and history, with the placement it reads and its state (lost,
 frozen, pending). Its eye hides it without changing the sketch (it still bounds profiles), and
 its menu offers:
@@ -375,7 +372,7 @@ its menu offers:
   some of a projected face's curves breaks the remaining link by default. With
   `preserve_projection_link: true`, Delete keeps identifiable remaining edges linked.
   Both `sketch.delete` and `selection.delete` take this input, including dry runs.
-  **Projection display and picking** sends true; it is off by default. The projection remembers the
+  Deleting in the app sends true. The projection remembers the
   source edges they came from by name, so exactly those stay deleted when it is updated, the
   part moves or the face is resized. Where the deleted curves can't be told apart that way (part
   of a source edge, one of edges told apart only by number such as half a hole, or a projection

@@ -255,12 +255,9 @@ fn another_sketchs_curve_is_projected_even_when_ids_collide() {
 }
 
 #[test]
-fn fix_keeps_the_generic_constraint_hint_with_projection_ui_off_or_on() {
-    for enhanced in [false, true] {
-        let mut h = Harness::new();
-        h.app.run("sketch.create", json!({"plane":"XY"})).unwrap();
-        h.app.ui.project_link_tools = enhanced;
-        h.app.start("sketch.constraint.fix");
-        assert_eq!(h.app.status.as_ref().unwrap().0, h.app.tr("sketch.hint.constraint.generic"));
-    }
+fn fix_keeps_the_generic_constraint_hint() {
+    let mut h = Harness::new();
+    h.app.run("sketch.create", json!({"plane":"XY"})).unwrap();
+    h.app.start("sketch.constraint.fix");
+    assert_eq!(h.app.status.as_ref().unwrap().0, h.app.tr("sketch.hint.constraint.generic"));
 }

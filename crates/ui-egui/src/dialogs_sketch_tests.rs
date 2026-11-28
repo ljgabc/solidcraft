@@ -1186,42 +1186,27 @@ fn projection_dialog_preview_and_apply_keep_explicit_policy_and_displayed_copy()
     }
 }
 
-/// Project owns this opt-in; neither saving preferences nor an older preference enables it.
+/// The projection workflow has no option any more: the removed control key is accepted and
+/// ignored, the checkbox handle is gone, and no preference exports or enables anything.
 #[test]
-fn project_link_tools_are_a_session_option_in_the_project_panel() {
+fn project_link_tools_control_key_is_gone() {
     let mut h = fixture();
-    assert!(!h.app.ui.project_link_tools);
     let before = h.app.session.doc.to_json();
+    assert_eq!(h.call("ui.set", json!({"projectLinkTools":true}))["ok"], true, "an unknown UI key is accepted");
+    assert_eq!(h.call("ui.set", json!({"projectLinkTools":"yes"}))["ok"], true, "any value for an unknown key is ignored");
+    assert_eq!(h.app.session.doc.to_json(), before, "a UI key edits no design");
     h.app.start("sketch.project");
     h.frames(4);
     assert!(matches!(h.app.dialog.as_ref().unwrap().kind, Kind::SketchProject { .. }));
-    h.step(&json!({"click":{"handle":"project:link-tools"}})).unwrap();
-    assert!(h.app.ui.project_link_tools);
-    assert_eq!(h.app.session.doc.to_json(), before, "choosing a UI policy edits no design");
-    assert_eq!(h.call("ui.set", json!({"showGrid":false}))["ok"], true);
-    assert!(h.app.ui.project_link_tools, "other UI changes retain the session option");
-    assert_eq!(h.call("ui.set", json!({"projectLinkTools":"yes"}))["ok"], false);
-    assert!(h.app.ui.project_link_tools, "a malformed update keeps the previous option");
-    assert_eq!(h.call("ui.prefs", json!({"projection_workflow_ui":true}))["ok"], false);
-
+    assert!(crate::scenario::handle_at("project:link-tools").is_none(), "the checkbox handle is gone");
     let exported = h.app.prefs();
     let prefs: Value = serde_json::from_str(&exported).unwrap();
-    assert!(prefs["preferences"].get("projection_workflow_ui").is_none());
     assert!(prefs.get("projectLinkTools").is_none());
     assert!(prefs["preferences"].get("project_link_tools").is_none());
     let mut restored = crate::SolveApp::new(Default::default(), Default::default());
     restored.load_prefs(&exported);
-    assert!(!restored.ui.project_link_tools);
     restored.load_prefs(r#"{"preferences":{"projection_workflow_ui":true}}"#);
-    assert!(!restored.ui.project_link_tools, "the removed preference cannot enable Project's option");
-
     h.step(&json!({"key":"Escape"})).unwrap();
-    assert!(h.app.ui.project_link_tools, "the choice lasts for the session after closing Project");
-    h.app.start("sketch.project");
-    h.frames(4);
-    h.step(&json!({"click":{"handle":"project:link-tools"}})).unwrap();
-    assert!(!h.app.ui.project_link_tools);
-    assert_eq!(h.app.session.doc.to_json(), before);
 }
 
 /// The Project dialog provides a Construction option to project references as construction geometry.

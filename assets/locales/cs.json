@@ -7990,8 +7990,6 @@
   "ui.profiles": "Profily",
   "ui.project": "Promítnutí",
   "ui.project_face_edges_sketch": "Promítat hrany plochy do nových náčrtů",
-  "ui.project_link_tools": "Zobrazení a výběr promítnutí",
-  "ui.project_link_tools_note": "Jen pro tuto relaci. Seskupí akce promítnutí, zobrazí řádky promítnutí a umožní promítnout geometrii jiného náčrtu při přidávání vazeb nebo kót. Vypnuto: zachová stávající nabídky a výběr.",
   "ui.project_references_construction": "Promítat reference jako konstrukční geometrii",
   "ui.project_references_construction_note": "Promítnout, Průnik, Zahrnout 3D geometrii a hrany plochy nového náčrtu na ploše vytvářejí konstrukční geometrii: reference pro kreslení, vynechané z profilů. Zůstávají propojené s modelem.",
   "ui.projection_of_new_drawings": "Promítání nových výkresů",

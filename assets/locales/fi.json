@@ -7582,8 +7582,6 @@
   "ui.profiles": "Profiilit",
   "ui.project": "Projisoi",
   "ui.project_face_edges_sketch": "Projisoi pinnan särmät uusiin luonnoksiin",
-  "ui.project_link_tools": "Projisoinnin näyttö ja valinta",
-  "ui.project_link_tools_note": "Vain tässä istunnossa. Ryhmittele projisointitoiminnot, näytä projisointirivit ja projisoi toisen luonnoksen geometriaa rajoitteita tai mittoja lisättäessä. Pois päältä säilyttää nykyiset valikot ja valinnan.",
   "ui.project_references_construction": "Projisoi viitteet apugeometriaksi",
   "ui.project_references_construction_note": "Projisoi, Leikkaa, Sisällytä 3D-geometria ja pinnalle luodun uuden luonnoksen pinnan särmät tuottavat apugeometriaa: viitteitä, joita vasten piirretään ja jotka jätetään profiilien ulkopuolelle. Ne pysyvät linkitettyinä malliin.",
   "ui.projection_of_new_drawings": "Uusien piirustusten projektio",
