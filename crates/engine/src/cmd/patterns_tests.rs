@@ -2449,10 +2449,15 @@ fn a_bare_name_of_a_mirrored_cap_split_from_its_original_asks_for_a_reselection(
         let measured = run(s, "inspect.measure", json!({}));
         measured["bodies"].as_array().unwrap().iter().find(|b| b["name"] == "Plate").unwrap().clone()
     };
+    // The plate as it is before either offset: the refused result must be exactly this, not
+    // merely different from the offset control.
+    let mut plain = Session::new((*s.doc).clone());
+    let plain = plate(&mut plain);
     // The same offset picked by its point alone, which every build resolves, is the control.
     let mut control = Session::new((*s.doc).clone());
     run(&mut control, "solid.offset_face", json!({"faces":[pick],"distance":0.25,"body":"Plate"}));
     let control = plate(&mut control);
+    assert!(rel(control["volume_mm3"].as_f64().unwrap(), plain["volume_mm3"].as_f64().unwrap()) > 1e-6, "the control actually offsets: {control} {plain}");
     // The bare name the unpatched release saved for the mirrored cap, with the pick on it: the
     // copy's cap and the original's are now two pieces of the face they both ended on, and the
     // pieces of one stem can be pieces of several faces, so the name asks for a reselection
@@ -2467,8 +2472,8 @@ fn a_bare_name_of_a_mirrored_cap_split_from_its_original_asks_for_a_reselection(
     assert!(result.error.is_some() && error.contains("reselect"), "the stored bare name asks for a reselection: {error}");
     let refused = plate(&mut reopened);
     assert!(
-        rel(refused["volume_mm3"].as_f64().unwrap(), control["volume_mm3"].as_f64().unwrap()) > 1e-6,
-        "the refused design keeps its unoffset volume: {refused}"
+        rel(refused["volume_mm3"].as_f64().unwrap(), plain["volume_mm3"].as_f64().unwrap()) < 1e-9,
+        "the refused design keeps the unoffset plate exactly: {refused} {plain}"
     );
 }
 
@@ -5227,6 +5232,88 @@ fn a_body_pattern_redefined_to_picked_placements_says_why_it_is_refused() {
     assert!(!err.contains("did not make a feature"), "{err}");
     assert_eq!(s.doc, doc, "the refused edit leaves the design as it was");
     assert_eq!(s.doc.occurrences.len(), occurrences, "no placement is added");
+}
+
+/// The pattern repeats the full cut, including the tapered bore, helical groove, and any lead-in.
+fn check_modelled_tapered_hole_patterns(circular: bool, lead_in: bool) {
+    use solidcore_record::Vec3;
+    for designation in ["Rc 1/2", "1/2-14 NPT"] {
+        let mut s = Session::default();
+        run(&mut s, "solid.box", json!({"length": 100, "width": 120, "height": 16, "body_name": "Plate"}));
+        let stock = volume(&mut s);
+        let mut hole = json!({
+            "position": [15, 50, 16], "direction": [0, 0, -1], "diameter": 18, "thread_depth": 10,
+            "thread": designation, "modeled": true, "name": "Tap"
+        });
+        if lead_in {
+            hole["chamfer_distance"] = json!(1);
+        }
+        run(&mut s, "solid.hole", hole);
+        let drilled = volume(&mut s);
+        let one_cut = stock - drilled;
+        assert!(one_cut > 0.0, "{designation}: the seed hole must remove material");
+
+        for count in [2, 4, 6] {
+            let (command, params) = if circular {
+                (
+                    "solid.pattern.circular",
+                    json!({"features": ["Tap"], "axis": {"origin": [50, 50, 0], "dir": [0, 0, 1]}, "count": count, "angle": 360}),
+                )
+            } else {
+                (
+                    "solid.pattern.rectangular",
+                    json!({"features": ["Tap"], "dir1": [1, 0, 0], "count1": 2, "spacing1": 35,
+                        "dir2": [0, 1, 0], "count2": count / 2, "spacing2": 28}),
+                )
+            };
+            let case = format!("{designation}, {command}, count {count}, lead-in {lead_in}");
+            let result = s.execute(command, &params).unwrap_or_else(|err| panic!("{case}: {err}"));
+            assert!(result["error"].is_null() && result["warning"].is_null(), "{case}: {result}");
+            // Rigid copies of disjoint cuts in the same stock remove additive volumes.
+            // The command count includes the seed, which is already removed from drilled.
+            let removed = drilled - volume(&mut s);
+            let expected = f64::from(count - 1) * one_cut;
+            assert!(rel(removed, expected) < 1e-3, "{case}: removed {removed} mm³, expected {expected} mm³");
+
+            let state = s.world_state().unwrap();
+            assert_eq!(state.bodies.len(), 1, "{case}");
+            for index in 0..count {
+                let (x, y) = if circular {
+                    let theta = 2.0 * PI * f64::from(index) / f64::from(count);
+                    (50.0 - 35.0 * theta.cos(), 50.0 - 35.0 * theta.sin())
+                } else {
+                    (15.0 + 35.0 * f64::from(index % 2), 50.0 + 28.0 * f64::from(index / 2))
+                };
+                let point = Vec3::new(x, y, 8.0);
+                assert_eq!(
+                    state.bodies[0].body.classify_point(point).unwrap(),
+                    solidcraft_kernel::PointClass::Outside,
+                    "{case}: missing hole at {point:?}"
+                );
+            }
+            run(&mut s, "edit.undo", json!({}));
+        }
+    }
+}
+
+#[test]
+fn rectangular_patterns_repeat_modelled_tapered_holes() {
+    check_modelled_tapered_hole_patterns(false, false);
+}
+
+#[test]
+fn rectangular_patterns_repeat_modelled_tapered_holes_with_lead_in() {
+    check_modelled_tapered_hole_patterns(false, true);
+}
+
+#[test]
+fn circular_patterns_repeat_modelled_tapered_holes() {
+    check_modelled_tapered_hole_patterns(true, false);
+}
+
+#[test]
+fn circular_patterns_repeat_modelled_tapered_holes_with_lead_in() {
+    check_modelled_tapered_hole_patterns(true, true);
 }
 
 /// A spacing expression that places a copy past the brep coordinate ceiling is an error,
