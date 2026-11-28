@@ -656,7 +656,7 @@ fn painted_in(shapes: &[egui::epaint::ClippedShape], colour: egui::Color32) -> u
 }
 
 #[test]
-fn projected_and_lost_point_colours_require_the_project_option() {
+fn projected_and_lost_point_colours_need_no_option() {
     fn points_in(shapes: &[egui::epaint::ClippedShape], colour: egui::Color32) -> usize {
         fn walk(shape: &egui::Shape, colour: egui::Color32) -> usize {
             match shape {
@@ -686,22 +686,19 @@ fn projected_and_lost_point_colours_require_the_project_option() {
             h.app.run("timeline.suppress", json!({"feature":source,"suppressed":true})).unwrap();
             h.app.edit_sketch(sketch);
         }
-        for enhanced in [false, true, false] {
-            h.call("ui.set", json!({"projectLinkTools":enhanced}));
-            h.settle();
-            let projected = egui::Color32::from_rgb(0x12, 0xab, 0x34);
-            let missing = egui::Color32::from_rgb(0xef, 0x12, 0x56);
-            if enhanced {
-                let expected = if lost { missing } else { projected };
-                assert!(points_in(&h.shapes, expected) >= 4, "lost={lost}: projected corners show their reference status");
-            } else {
-                assert_eq!(points_in(&h.shapes, projected), 0, "projected point colours are opt-in");
-                assert_eq!(points_in(&h.shapes, missing), 0, "lost point colours are opt-in");
-                let determined = egui::Color32::from_rgb(0xab, 0x34, 0x12);
-                let free = egui::Color32::from_rgb(0x34, 0x12, 0xab);
-                assert!(points_in(&h.shapes, determined) + points_in(&h.shapes, free) >= 4, "lost={lost}: main's point colours remain visible");
-            }
-        }
+        h.settle();
+        let projected = egui::Color32::from_rgb(0x12, 0xab, 0x34);
+        let missing = egui::Color32::from_rgb(0xef, 0x12, 0x56);
+        let expected = if lost { missing } else { projected };
+        assert!(points_in(&h.shapes, expected) >= 4, "lost={lost}: projected corners show their reference status");
+        assert_eq!(points_in(&h.shapes, if lost { projected } else { missing }), 0, "lost={lost}: only the current status colour shows");
+        let determined = egui::Color32::from_rgb(0xab, 0x34, 0x12);
+        let free = egui::Color32::from_rgb(0x34, 0x12, 0xab);
+        assert_eq!(
+            points_in(&h.shapes, determined) + points_in(&h.shapes, free),
+            0,
+            "lost={lost}: linked points no longer use the determined or free colours"
+        );
     }
 }
 

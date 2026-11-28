@@ -2085,8 +2085,9 @@ fn sketch_entity_items(app: &SolveApp) -> Vec<Item> {
         v.push(cmd(app, "sketch.edit_text", "Edit Text"));
         v.extend(explode_text(app));
     }
-    // The opt-in groups Break Link with the projection's actions; otherwise keep its old place.
-    if !app.ui.project_link_tools || selected_links(&ss.sketch, &ents).is_empty() {
+    // Break Link belongs with the projection's actions; a selection that has none keeps
+    // the menu as it is.
+    if selected_links(&ss.sketch, &ents).is_empty() {
         v.extend(break_link(app, &ss.sketch, &ents));
     }
     if let Some(curve) = crate::sketch_modify_ui::selected_equation(app) {
@@ -2143,13 +2144,8 @@ fn sketch_entity_items(app: &SolveApp) -> Vec<Item> {
         v.push(cmd(app, "sketch.link_visibility", "Hide Projection").with(json!({"links": links, "visible": false})));
         v.push(cmd(app, "sketch.remove_link", "Remove Projection").with(p));
         // Break Link frees every member of the projection, not only the ones selected.
-        if app.ui.project_link_tools {
-            let partial =
-                links.iter().any(|l| ss.sketch.link_curves(l).iter().filter_map(|c| ss.sketch.curves.get(*c)).any(|c| !ents.contains(&c.id)));
-            v.push(
-                cmd(app, "sketch.break_link", if partial { "Break Link (whole projection)" } else { "Break Link" }).with(json!({"entities": ents})),
-            );
-        }
+        let partial = links.iter().any(|l| ss.sketch.link_curves(l).iter().filter_map(|c| ss.sketch.curves.get(*c)).any(|c| !ents.contains(&c.id)));
+        v.push(cmd(app, "sketch.break_link", if partial { "Break Link (whole projection)" } else { "Break Link" }).with(json!({"entities": ents})));
         v.push(Item::sep());
     }
     if curves.len() == 1 && ss.sketch.offset_distance(&curves[0]).is_some() {
@@ -2219,7 +2215,7 @@ fn sketch_entity_items(app: &SolveApp) -> Vec<Item> {
             |c| ss.sketch.is_linked_curve(c),
         )
     });
-    v.push(act("ui.fix", "Fix/Unfix", "c_fix").with(json!({ "entities": ents })).on(!app.ui.project_link_tools || !projected));
+    v.push(act("ui.fix", "Fix/Unfix", "c_fix").with(json!({ "entities": ents })).on(!projected));
     // The clipboard beside Delete, as in every menu.
     v.push(act("ui.cut", "Cut", "cut").key("Ctrl+X"));
     v.push(act("ui.copy", "Copy", "copy").key("Ctrl+C"));
@@ -4448,74 +4444,62 @@ mod tests {
         assert!(remaining.dist(cut) > 1.0);
     }
 
-    /// #10417: a projected edge's context menu offers Break Link, and the item makes it normal
-    /// sketch geometry that Trim then cuts. A line drawn in the sketch is offered no Break Link.
+    /// #10417: a projected edge's context menu offers Break Link in the Projection section, and
+    /// the item makes it normal sketch geometry that Trim then cuts. A line drawn in the sketch
+    /// is offered no Break Link.
     #[test]
     fn projected_geometry_context_menu_breaks_its_link_and_allows_trim() {
         use solidcore_record::Vec2;
 
-        for enhanced in [false, true] {
-            let mut h = crate::scenario::Harness::new();
-            h.app.ui.project_link_tools = enhanced;
-            h.app.home.open = false;
-            h.app.run("solid.box", json!({"length":20,"width":20,"height":10})).unwrap();
-            h.app.run("sketch.create", json!({"plane":"XY"})).unwrap();
-            h.app.run("sketch.project", json!({"refs":[{"body":"Body1"}],"projection_link":true})).unwrap();
-            let drawn = h.app.run("sketch.line", json!({"points":[[10,-5],[10,5]],"connect":false,"infer":false})).unwrap()["curves"][0]
-                .as_str()
-                .unwrap()
-                .to_owned();
-            let sid = h.app.session.active_sketch.unwrap();
-            let cut = Vec2::new(15.0, 0.0);
-            let edge = {
-                let state = h.app.session.world_state().unwrap();
-                let sk = &state.sketch(sid).unwrap().sketch;
-                (0..sk.curves.len())
-                    .find(|i| sk.curves[*i].link.is_some() && sk.shape(*i).is_some_and(|shape| shape.dist(cut) < 1e-6))
-                    .map(|i| sk.curves[i].id.clone())
-            }
-            .expect("the box's edge along y = 0 is projected");
-            assert!(h.app.run("sketch.trim", json!({"curve":edge,"at":[cut.x,cut.y]})).is_err(), "a linked edge is not trimmed");
-
-            h.call("ui.view", json!({"view":"top"}));
-            h.app.cam.distance = 80.0;
-            h.settle();
-            h.step(&json!({"click":{"world":[10,3,0]},"button":"right"})).unwrap();
-            assert_eq!(h.app.session.selection, vec![Sel::SketchCurve { id: drawn.clone(), sketch: None }]);
-            assert!(!items(&h.app, &Target::Viewport).iter().any(|item| item.id == "sketch.break_link"), "a drawn line has no link to break");
-            h.step(&json!({"key":"Escape"})).unwrap();
-            h.step(&json!({"click":{"world":[cut.x,cut.y,0]},"button":"right"})).unwrap();
-            assert_eq!(h.app.session.selection, vec![Sel::SketchCurve { id: edge.clone(), sketch: None }]);
-            let menu = items(&h.app, &Target::Viewport);
-            let item = menu.iter().find(|item| item.id == "sketch.break_link").expect("a projected edge must offer Break Link");
-            // The body's outline is one projection: breaking it frees every edge, not only this one.
-            assert_eq!(item.label, if enhanced { "Break Link (whole projection)" } else { "Break Link" });
-            assert_eq!(menu.iter().filter(|item| item.id == "sketch.break_link").count(), 1, "one Break Link");
-            let break_at = menu.iter().position(|item| item.id == "sketch.break_link").unwrap();
-            let move_at = menu.iter().position(|item| item.id == "sketch.move").unwrap();
-            assert_eq!(break_at > move_at, enhanced, "only the opt-in moves Break Link into the Projection section");
-            assert_eq!(menu.iter().find(|item| item.id == "ui.fix").unwrap().enabled, !enhanced);
-            for command in ["sketch.update_references", "sketch.freeze_link", "sketch.link_visibility", "sketch.remove_link"] {
-                assert!(menu.iter().any(|item| item.id == command && item.enabled), "{command} remains available");
-            }
-            assert!(item.enabled);
-            assert_eq!(item.params, Some(json!({"entities":[edge]})));
-            h.step(&json!({"click":{"handle":"menu:sketch.break_link"}})).unwrap();
-            let unlinked = h
-                .app
-                .session
-                .world_state()
-                .unwrap()
-                .sketch(sid)
-                .unwrap()
-                .sketch
-                .curves
-                .iter()
-                .find(|c| c.id == edge)
-                .is_some_and(|c| c.link.is_none());
-            assert!(unlinked, "Break Link makes the edge normal sketch geometry");
-            h.app.run("sketch.trim", json!({"curve":edge,"at":[cut.x,cut.y]})).unwrap();
+        let mut h = crate::scenario::Harness::new();
+        h.app.home.open = false;
+        h.app.run("solid.box", json!({"length":20,"width":20,"height":10})).unwrap();
+        h.app.run("sketch.create", json!({"plane":"XY"})).unwrap();
+        h.app.run("sketch.project", json!({"refs":[{"body":"Body1"}],"projection_link":true})).unwrap();
+        let drawn = h.app.run("sketch.line", json!({"points":[[10,-5],[10,5]],"connect":false,"infer":false})).unwrap()["curves"][0]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        let sid = h.app.session.active_sketch.unwrap();
+        let cut = Vec2::new(15.0, 0.0);
+        let edge = {
+            let state = h.app.session.world_state().unwrap();
+            let sk = &state.sketch(sid).unwrap().sketch;
+            (0..sk.curves.len())
+                .find(|i| sk.curves[*i].link.is_some() && sk.shape(*i).is_some_and(|shape| shape.dist(cut) < 1e-6))
+                .map(|i| sk.curves[i].id.clone())
         }
+        .expect("the box's edge along y = 0 is projected");
+        assert!(h.app.run("sketch.trim", json!({"curve":edge,"at":[cut.x,cut.y]})).is_err(), "a linked edge is not trimmed");
+
+        h.call("ui.view", json!({"view":"top"}));
+        h.app.cam.distance = 80.0;
+        h.settle();
+        h.step(&json!({"click":{"world":[10,3,0]},"button":"right"})).unwrap();
+        assert_eq!(h.app.session.selection, vec![Sel::SketchCurve { id: drawn.clone(), sketch: None }]);
+        assert!(!items(&h.app, &Target::Viewport).iter().any(|item| item.id == "sketch.break_link"), "a drawn line has no link to break");
+        h.step(&json!({"key":"Escape"})).unwrap();
+        h.step(&json!({"click":{"world":[cut.x,cut.y,0]},"button":"right"})).unwrap();
+        assert_eq!(h.app.session.selection, vec![Sel::SketchCurve { id: edge.clone(), sketch: None }]);
+        let menu = items(&h.app, &Target::Viewport);
+        let item = menu.iter().find(|item| item.id == "sketch.break_link").expect("a projected edge must offer Break Link");
+        // The body's outline is one projection: breaking it frees every edge, not only this one.
+        assert_eq!(item.label, "Break Link (whole projection)");
+        assert_eq!(menu.iter().filter(|item| item.id == "sketch.break_link").count(), 1, "one Break Link");
+        let break_at = menu.iter().position(|item| item.id == "sketch.break_link").unwrap();
+        let move_at = menu.iter().position(|item| item.id == "sketch.move").unwrap();
+        assert!(break_at > move_at, "Break Link sits in the Projection section, after Move");
+        assert!(!menu.iter().find(|item| item.id == "ui.fix").unwrap().enabled, "Fix is off on projected geometry its link already fixes");
+        for command in ["sketch.update_references", "sketch.freeze_link", "sketch.link_visibility", "sketch.remove_link"] {
+            assert!(menu.iter().any(|item| item.id == command && item.enabled), "{command} remains available");
+        }
+        assert!(item.enabled);
+        assert_eq!(item.params, Some(json!({"entities":[edge]})));
+        h.step(&json!({"click":{"handle":"menu:sketch.break_link"}})).unwrap();
+        let unlinked =
+            h.app.session.world_state().unwrap().sketch(sid).unwrap().sketch.curves.iter().find(|c| c.id == edge).is_some_and(|c| c.link.is_none());
+        assert!(unlinked, "Break Link makes the edge normal sketch geometry");
+        h.app.run("sketch.trim", json!({"curve":edge,"at":[cut.x,cut.y]})).unwrap();
     }
 
     /// #6533: a right-click on a fit point spline offers Add Spline Point at the clicked spot, and

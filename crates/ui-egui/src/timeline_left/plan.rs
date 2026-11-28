@@ -22,7 +22,7 @@ use crate::timeline::{TimelineKind, icon_of};
 /// A feature as its row draws it: id, name, icon, suppressed, type name and kind.
 pub(super) type FeatureInfo = (u64, String, &'static str, bool, &'static str, TimelineKind);
 
-/// What a plan was built from, including the projection display preference. The design changes
+/// What a plan was built from. The design changes
 /// through commands, which count the session's revision up; the marker and the counts guard
 /// edits made in place without one.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -33,7 +33,6 @@ struct PlanKey {
     marker: Option<usize>,
     features: usize,
     groups: usize,
-    project_link_tools: bool,
     under_feature: bool,
     show_hidden: bool,
 }
@@ -48,7 +47,6 @@ impl PlanKey {
             marker: doc.marker,
             features: doc.features.len(),
             groups: doc.timeline_groups.len(),
-            project_link_tools: app.ui.project_link_tools,
             under_feature,
             show_hidden: app.tree.history_show_hidden,
         }
@@ -187,7 +185,7 @@ impl RowPlan {
             .iter()
             .map(|feature| {
                 index_of.get(&feature.0).and_then(|index| doc.features.get(*index)).is_some_and(
-                    |feature| matches!(&feature.kind, solidcraft_engine::doc::FeatureKind::Sketch { sketch, .. } if !sketch.patterns.is_empty() || (app.ui.project_link_tools && sketch.links.iter().any(crate::sketch_link_tree::listed))),
+                    |feature| matches!(&feature.kind, solidcraft_engine::doc::FeatureKind::Sketch { sketch, .. } if !sketch.patterns.is_empty() || sketch.links.iter().any(crate::sketch_link_tree::listed)),
                 )
             })
             .collect();
